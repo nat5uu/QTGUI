@@ -39,18 +39,8 @@ class MainWindow(QMainWindow):
 
         # Create an emergency button in the first tab
         self.emergency_button = QPushButton("Emergency", self.tab1)
+        self.emergency_button.setObjectName("emergencyButton")
         self.emergency_button.setFixedSize(100, 100)  # Set a fixed size to make it a circle
-        self.emergency_button.setStyleSheet("""
-            QPushButton {
-                background-color: red;
-                color: white;
-                font-weight: bold;
-                border-radius: 50px;  /* Half of the button's height/width */
-            }
-            QPushButton:pressed {
-                background-color: darkred;
-            }
-        """)
         self.emergency_button.clicked.connect(self.handle_emergency)
         self.tab1_layout.addWidget(self.emergency_button, alignment=Qt.AlignmentFlag.AlignCenter)
 
@@ -69,6 +59,13 @@ class MainWindow(QMainWindow):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_temperature)
         self.timer.start(5000)  # Update every 5000 milliseconds (5 seconds)
+
+        # Load the external stylesheet
+        self.load_stylesheet()
+
+    def load_stylesheet(self):
+        with open("style.css", "r") as file:
+            self.setStyleSheet(file.read())
 
     def update_temperature(self):
         # Simulate reading from a temperature sensor

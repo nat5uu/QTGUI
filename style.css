@@ -1,0 +1,10 @@
+#emergencyButton {
+    background-color: red;
+    color: white;
+    font-weight: bold;
+    border-radius: 50px;  /* Half of the button's height/width */
+}
+
+#emergencyButton:pressed {
+    background-color: darkred;
+}
