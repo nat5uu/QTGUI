@@ -1,20 +1,17 @@
 import sys
-from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout,QHBoxLayout, QWidget, QTabWidget, QLabel,QFormLayout,QPushButton,QSpacerItem
+from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QTabWidget, QLabel, QFormLayout, QPushButton, QSpacerItem, QSizePolicy,QSpinBox
 
 class Tab_Test(QWidget):
     def __init__(self):
         super().__init__()
-        #create Layout
         layout = QVBoxLayout()
         information = QHBoxLayout()
         pins = QVBoxLayout()
         resistance = QFormLayout()
-        force = QFormLayout()  
-        # Add spacer item
-        spacer_item = QSpacerItem(0, 40)
+        force = QFormLayout()
         
+        spacer_item = QSpacerItem(0, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
         
-        #starting values
         information_resistance = {
             "Widerstand1 [µΩ]:": 0,
             "Widerstand2 [µΩ]:": 0,
@@ -26,27 +23,27 @@ class Tab_Test(QWidget):
             "Kraft3 [N]:": 0,
         }
 
-        #fill Layouts
-        for i in range(1,4):
+        for i in range(1, 4):
             pin_id = QLabel(f"Pin_{i}")
             pins.addWidget(pin_id)
             pins.addItem(spacer_item)
 
-        for pin_id,pin_value in information_resistance.items():
+        for pin_id, pin_value in information_resistance.items():
             pin = QLabel(pin_id)
             value = QLabel(str(pin_value))
             value.setStyleSheet("background-color: lightgray;")
-            resistance.addRow(pin,value)
+            resistance.addRow(pin, value)
             resistance.addItem(spacer_item)
-        for pin_id,pin_value in information_force.items():
+
+        for pin_id, pin_value in information_force.items():
             pin = QLabel(pin_id)
             value = QLabel(str(pin_value))
             value.setStyleSheet("background-color: lightgray;")
-            force.addRow(pin,value)
+            force.addRow(pin, value)
             force.addItem(spacer_item)
-        start_ex = QPushButton()
 
-        #merge Layouts
+        start_test = QPushButton("Start Test")
+
         information.addStretch()
         information.addLayout(pins)
         information.addLayout(resistance)
@@ -56,7 +53,7 @@ class Tab_Test(QWidget):
         
         layout.addStretch()
         layout.addLayout(information)
-        layout.addWidget(start_ex)
+        layout.addWidget(start_test)
         layout.addStretch()
         
         self.setLayout(layout)
@@ -64,18 +61,13 @@ class Tab_Test(QWidget):
 class Tab_Experiment(QWidget):
     def __init__(self):
         super().__init__()
-
-        # Create a QTabWidget
         self.tabs = QTabWidget()
-
-        # Create sub-tabs (you need to add the self.tabs to the layout of this widget)
         self.tab_ex_input = sub_Tab_Experiment_inputs()
         self.tab_ex_graph = sub_Tab_Experiment_graph()
 
         self.tabs.addTab(self.tab_ex_input, "Werte")
         self.tabs.addTab(self.tab_ex_graph, "Überwachung")
 
-        # Set layout for this widget
         layout = QVBoxLayout(self)
         layout.addWidget(self.tabs)
         self.setLayout(layout)
@@ -83,10 +75,25 @@ class Tab_Experiment(QWidget):
 class sub_Tab_Experiment_inputs(QWidget):
     def __init__(self):
         super().__init__()
-        self.label = QLabel("Inputs Tab Content")
+
+        #create Inputs ----------------------------------------> Am besten über dialog die inputs holen ---------------> dopllelt Tab fällt weg
+        self.input_max_cycle = QSpinBox(self)
+        self.input_max_cycle.setRange(0,120)
+        self.input_max_cycle.setValue(120)
+
+        #create Layout
+        horizontal = QHBoxLayout()
+        inputs = QFormLayout()
         layout = QVBoxLayout()
-        layout.addWidget(self.label)
+
+        #merge Layouts
+        inputs.addRow('Soll - Betriebstemperatur:', self.input_max_cycle)
+        horizontal.addStretch()
+        horizontal.addLayout(inputs)
+        horizontal.addStretch()
+        layout.addLayout(horizontal)
         self.setLayout(layout)
+
 
 class sub_Tab_Experiment_graph(QWidget):
     def __init__(self):
@@ -100,7 +107,6 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.window_size = 0.7
-
         self.setWindowTitle("Main Window")
         self.center_window()
 
