@@ -1,41 +1,59 @@
 import sys
-from PyQt6.QtWidgets import QApplication, QWidget, QFormLayout, QSpinBox, QLabel
+from PyQt6.QtWidgets import (
+    QApplication, QDialog, QVBoxLayout, QLineEdit, QPushButton, QLabel, QMessageBox
+)
 
-class MainWindow(QWidget):
+class NumberInputDialog(QDialog):
     def __init__(self):
         super().__init__()
+        self.init_ui()
+    
+    def init_ui(self):
+        # Set the window title
+        self.setWindowTitle("Number Input Dialog")
+
+        # Create a QVBoxLayout instance
+        layout = QVBoxLayout()
+
+        # Create a QLabel instance
+        self.label = QLabel("Please enter a number between 0 and 120:")
         
-        self.initUI()
+        # Add the QLabel to the layout
+        layout.addWidget(self.label)
 
-    def initUI(self):
-        self.setWindowTitle('Input Example')
+        # Create a QLineEdit instance
+        self.line_edit = QLineEdit()
+        
+        # Add the QLineEdit to the layout
+        layout.addWidget(self.line_edit)
 
-        # Create a form layout
-        layout = QFormLayout()
+        # Create a QPushButton instance
+        self.button = QPushButton("OK")
+        self.button.clicked.connect(self.validate_input)  # Connect the button to the validate_input method
+        
+        # Add the button to the layout
+        layout.addWidget(self.button)
 
-        # Create a label to display the value
-        self.label = QLabel(self)
-
-        # Create a QSpinBox
-        self.spin_box = QSpinBox(self)
-        self.spin_box.setRange(0, 120)
-        self.spin_box.setValue(0)
-
-        # Connect the spin box value change to a function
-        self.spin_box.valueChanged.connect(self.on_value_change)
-
-        # Add widgets to the layout
-        layout.addRow('Select a value between 0 and 120:', self.spin_box)
-        layout.addRow('Selected value:', self.label)
-
-        # Set the layout to the main window
+        # Set the layout for the dialog
         self.setLayout(layout)
+    
+    def validate_input(self):
+        try:
+            # Get the text from QLineEdit and convert it to an integer
+            value = int(self.line_edit.text())
+            
+            # Check if the value is within the desired range
+            if 0 <= value <= 120:
+                QMessageBox.information(self, "Success", f"Valid number entered: {value}")
+                self.accept()
+            else:
+                QMessageBox.warning(self, "Invalid Input", "Please enter a number between 0 and 120.")
+        except ValueError:
+            QMessageBox.warning(self, "Invalid Input", "Please enter a valid number.")
 
-    def on_value_change(self, value):
-        self.label.setText(f'{value}')
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     app = QApplication(sys.argv)
-    main_window = MainWindow()
-    main_window.show()
+    dialog = NumberInputDialog()
+    if dialog.exec() == QDialog.DialogCode.Accepted:
+        print(f"Number entered: {dialog.line_edit.text()}")
     sys.exit(app.exec())
