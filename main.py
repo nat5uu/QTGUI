@@ -1,11 +1,17 @@
 import sys
-from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QTabWidget, QLabel, QFormLayout, QPushButton, QSpacerItem, QSizePolicy,QInputDialog,QMessageBox
+import pandas as pd
+from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QTabWidget, QLabel, QFormLayout, QPushButton, QSpacerItem, QSizePolicy,QInputDialog,QMessageBox,QDialog,QDialogButtonBox
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+import time
 
 class Tab_Test(QWidget):
     def __init__(self):
         super().__init__()
+        self.emergency = False
         layout = QVBoxLayout()
         information = QHBoxLayout()
+        emergency_layout = QHBoxLayout()
         pins = QVBoxLayout()
         resistance = QFormLayout()
         force = QFormLayout()
@@ -43,6 +49,23 @@ class Tab_Test(QWidget):
             force.addItem(spacer_item)
 
         start_test = QPushButton("Start Test")
+        start_test.clicked.connect(self.test)
+        self.emergency_button = QPushButton("Emergency")
+        self.emergency_button.clicked.connect(self.set_emergency)
+        self.emergency_button.setFixedSize(200, 200)  # Set a fixed size to make it a circle
+        self.emergency_button.setStyleSheet("""
+            QPushButton {
+                background-color: blue;
+                color: white;
+                font-weight: bold;
+                border-radius: 100px;  /* Half of the button's height/width */
+            }
+            QPushButton:pressed {
+                background-color: darkred;
+            }
+        """)
+        emergency_layout.addStretch()
+        emergency_layout.addWidget(self.emergency_button)
 
         information.addStretch()
         information.addLayout(pins)
@@ -51,19 +74,30 @@ class Tab_Test(QWidget):
         information.addLayout(force)
         information.addStretch()
         
-        layout.addStretch()
+        layout.addLayout(emergency_layout)
         layout.addLayout(information)
         layout.addWidget(start_test)
         layout.addStretch()
         
         self.setLayout(layout)
 
+    def set_emergency(self):
+        self.emergency = True
+        
+    def test(self):
+        for i in range(0,100):
+            if not self.emergency:
+                print(i)
+                time.sleep(0.1)
+            else:
+                print("Error")
+
 class Tab_Experiment(QWidget):
     def __init__(self):
         super().__init__()
         self.tabs = QTabWidget()
         self.tab_ex_input = sub_Tab_Experiment_inputs()
-        self.tab_ex_graph = sub_Tab_Experiment_graph()
+        self.tab_ex_graph = sub_Tab_Experiment_graph(self.tab_ex_input)
 
         self.tabs.addTab(self.tab_ex_input, "Werte")
         self.tabs.addTab(self.tab_ex_graph, "Überwachung")
@@ -155,15 +189,125 @@ class sub_Tab_Experiment_inputs(QWidget):
         if ok:
             self.temp = value_input
             self.value_Temp.setText(str(self.temp))
-
+            
+class MplCanvas(FigureCanvas):
+    def __init__(self, parent=None, width=5, height=4, dpi=100):
+        fig = Figure(figsize=(width, height), dpi=dpi)
+        self.axes = fig.add_subplot(111)
+        super().__init__(fig)
+        
+class ValueDialog(QDialog):
+    def __init__(self, values):
+        super().__init__()
+        
+        self.setWindowTitle('Werte anzeigen')
+        
+        layout = QVBoxLayout(self)
+        text = QLabel("Das Experiment wird mit Folgenden Werten gestartet:")
+        layout.addWidget(text)
+        
+        # Zeige die Werte als Labels im Dialog an
+        for key, value in values.items():
+            label = QLabel(f"{key}: {value}")
+            layout.addWidget(label)
+        
+        # Dialog-Buttons (OK und Abbrechen)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        
+        layout.addWidget(buttons)
 
 class sub_Tab_Experiment_graph(QWidget):
-    def __init__(self):
+    def __init__(self,inputs_widget):
         super().__init__()
-        self.label = QLabel("Graph Tab Content")
+        self.inputs_widget = inputs_widget
+        # Create a matplotlib canvas
+        self.canvas = MplCanvas(self, width=5, height=4, dpi=100)
+
         layout = QVBoxLayout()
-        layout.addWidget(self.label)
+        information = QHBoxLayout()
+        pins = QVBoxLayout()
+        resistance = QFormLayout()
+        force = QFormLayout()
+        
+        spacer_item = QSpacerItem(0, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        
+        information_resistance = {
+            "Widerstand1 [µΩ]:": 0,
+            "Widerstand2 [µΩ]:": 0,
+            "Widerstand3 [µΩ]:": 0, 
+        }
+        information_force = {
+            "Kraft1 [N]:": 0,
+            "Kraft2 [N]:": 0,
+            "Kraft3 [N]:": 0,
+        }
+
+        for i in range(1, 4):
+            pin_id = QLabel(f"Pin_{i}")
+            pins.addWidget(pin_id)
+            pins.addItem(spacer_item)
+
+        for pin_id, pin_value in information_resistance.items():
+            pin = QLabel(pin_id)
+            value = QLabel(str(pin_value))
+            value.setStyleSheet("background-color: lightgray;")
+            resistance.addRow(pin, value)
+            resistance.addItem(spacer_item)
+
+        for pin_id, pin_value in information_force.items():
+            pin = QLabel(pin_id)
+            value = QLabel(str(pin_value))
+            value.setStyleSheet("background-color: lightgray;")
+            force.addRow(pin, value)
+            force.addItem(spacer_item)
+
+        start_experiment = QPushButton("Start Experiment")
+        start_experiment.clicked.connect(self.values_experiment_start)
+
+        information.addStretch()
+        information.addLayout(pins)
+        information.addLayout(resistance)
+        information.addItem(spacer_item)
+        information.addLayout(force)
+        information.addStretch()
+        
+        layout.addStretch()
+        layout.addWidget(start_experiment)
+        layout.addLayout(information)
+        
+        layout.addStretch()
+        layout.addWidget(self.canvas)
+        
         self.setLayout(layout)
+    
+    def values_experiment_start(self):
+        values = {
+            "Maximale Anzahl an Stackzyklen": self.inputs_widget.max_cycle,
+            "Anzahl an Steckzyklen zwischen Widerstandsmessung": self.inputs_widget.cycle_between_res,
+            "Temperatur": self.inputs_widget.temp
+        }
+        
+        # Dialog erstellen und ausführen
+        dialog = ValueDialog(values)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self.plot_example_data()
+        else:
+            pass
+
+    def plot_example_data(self):
+        # Example plot
+        x = [0, 1, 2, 3, 4, 5]
+        y = [0, 1, 4, 9, 16, 25]
+
+        self.canvas.axes.plot(x, y)
+        
+        # Labeling the axes
+        self.canvas.axes.set_xlabel('X-Achse')  # Set the x-axis label
+        self.canvas.axes.set_ylabel('Y-Achse')  # Set the y-axis label
+
+        self.canvas.draw()
 
 class MainWindow(QMainWindow):
     def __init__(self):
