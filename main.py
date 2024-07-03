@@ -1,9 +1,27 @@
 import sys
 import pandas as pd
-from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QTabWidget, QLabel, QFormLayout, QPushButton, QSpacerItem, QSizePolicy,QInputDialog,QMessageBox,QDialog,QDialogButtonBox
+from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QTabWidget, QLabel, QFormLayout, QPushButton, QSpacerItem, QSizePolicy,QInputDialog,QMessageBox,QDialog,QDialogButtonBox,QProgressBar
+from PyQt6.QtCore import QThread, pyqtSignal
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 import time
+import random
+
+class Thread_Test(QThread):
+    finished = pyqtSignal()
+    def __init__(self,Tab_Test):
+        super().__init__()
+        self.tab_Test = Tab_Test
+        self.emergency = False
+    def run(self):
+        for i in range(1, 101):
+            if not self.emergency:
+                print(i)
+                time.sleep(0.1)
+                self.tab_Test.progress_bar.setValue(i)
+            else:
+                break
+        self.finished.emit()
 
 class Tab_Test(QWidget):
     def __init__(self):
@@ -48,8 +66,11 @@ class Tab_Test(QWidget):
             force.addRow(pin, value)
             force.addItem(spacer_item)
 
+        self.progress_bar = QProgressBar(self)
+        
+
         start_test = QPushButton("Start Test")
-        start_test.clicked.connect(self.test)
+        start_test.clicked.connect(self.startTest)
         self.emergency_button = QPushButton("Emergency")
         self.emergency_button.clicked.connect(self.set_emergency)
         self.emergency_button.setFixedSize(200, 200)  # Set a fixed size to make it a circle
@@ -77,20 +98,24 @@ class Tab_Test(QWidget):
         layout.addLayout(emergency_layout)
         layout.addLayout(information)
         layout.addWidget(start_test)
+        layout.addWidget(self.progress_bar)
         layout.addStretch()
+
+        #thread handling
+        self.thread_test = Thread_Test(self)
+        self.thread_test.finished.connect(self.on_test_finished)
         
         self.setLayout(layout)
+    def on_test_finished(self):
+        print("Done")
 
     def set_emergency(self):
-        self.emergency = True
+        self.thread_test.emergency = True
+        QMessageBox.warning(self, "Emergency", "Der Notaus wurde gedrückt")
         
-    def test(self):
-        for i in range(0,100):
-            if not self.emergency:
-                print(i)
-                time.sleep(0.1)
-            else:
-                print("Error")
+    def startTest(self):
+        self.thread_test.emergency = False
+        self.thread_test.start()
 
 class Tab_Experiment(QWidget):
     def __init__(self):
@@ -218,10 +243,37 @@ class ValueDialog(QDialog):
         
         layout.addWidget(buttons)
 
+class Thread_Experiment(QThread):
+    finished_exp = pyqtSignal()
+    def __init__(self,Tab_Test):
+        super().__init__()
+        self.tab_Test = Tab_Test
+        self.emergency = False
+    def run(self):
+        for i in range(1, 101):
+            if not self.emergency:
+                print(i)
+                new_row = pd.DataFrame({"Messungsschritt": [i], "Widerstand": [random.randint(0, 100)]})
+                self.tab_Test.dataframe = pd.concat([self.tab_Test.dataframe, new_row], ignore_index=True)
+                self.tab_Test.canvas.axes.plot(self.tab_Test.dataframe["Messungsschritt"], self.tab_Test.dataframe["Widerstand"])
+        
+                # Labeling the axes
+                self.tab_Test.canvas.axes.set_xlabel('X-Achse')  # Set the x-axis label
+                self.tab_Test.canvas.axes.set_ylabel('Y-Achse')  # Set the y-axis label
+
+                self.tab_Test.canvas.draw()
+                time.sleep(0.1)
+                self.tab_Test.progress_bar.setValue(i)
+            else:
+                break
+        self.finished_exp.emit()
+
 class sub_Tab_Experiment_graph(QWidget):
     def __init__(self,inputs_widget):
         super().__init__()
         self.inputs_widget = inputs_widget
+        self.df_value = {"Messungsschritt": [],"Widerstand": []}
+        self.dataframe = pd.DataFrame(self.df_value)
         # Create a matplotlib canvas
         self.canvas = MplCanvas(self, width=5, height=4, dpi=100)
 
@@ -230,6 +282,7 @@ class sub_Tab_Experiment_graph(QWidget):
         pins = QVBoxLayout()
         resistance = QFormLayout()
         force = QFormLayout()
+        emergency_layout = QHBoxLayout()
         
         spacer_item = QSpacerItem(0, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
         
@@ -265,6 +318,25 @@ class sub_Tab_Experiment_graph(QWidget):
 
         start_experiment = QPushButton("Start Experiment")
         start_experiment.clicked.connect(self.values_experiment_start)
+        self.emergency_button = QPushButton("Emergency")
+        self.emergency_button.clicked.connect(self.set_emergency)
+        self.emergency_button.setFixedSize(200, 200)  # Set a fixed size to make it a circle
+        self.emergency_button.setStyleSheet("""
+            QPushButton {
+                background-color: blue;
+                color: white;
+                font-weight: bold;
+                border-radius: 100px;  /* Half of the button's height/width */
+            }
+            QPushButton:pressed {
+                background-color: darkred;
+            }
+        """)
+        emergency_layout.addStretch()
+        emergency_layout.addWidget(self.emergency_button)
+
+        #Progress Bar
+        self.progress_bar = QProgressBar(self)
 
         information.addStretch()
         information.addLayout(pins)
@@ -274,13 +346,20 @@ class sub_Tab_Experiment_graph(QWidget):
         information.addStretch()
         
         layout.addStretch()
+        layout.addLayout(emergency_layout)
         layout.addWidget(start_experiment)
+        layout.addWidget(self.progress_bar)
         layout.addLayout(information)
         
         layout.addStretch()
         layout.addWidget(self.canvas)
         
         self.setLayout(layout)
+
+        #thread handling
+        self.thread_exp = Thread_Experiment(self)
+        self.thread_exp.finished.connect(self.on_exp_finished)
+
     
     def values_experiment_start(self):
         values = {
@@ -292,22 +371,23 @@ class sub_Tab_Experiment_graph(QWidget):
         # Dialog erstellen und ausführen
         dialog = ValueDialog(values)
         if dialog.exec() == QDialog.DialogCode.Accepted:
-            self.plot_example_data()
+            self.startExp()
         else:
             pass
 
-    def plot_example_data(self):
-        # Example plot
-        x = [0, 1, 2, 3, 4, 5]
-        y = [0, 1, 4, 9, 16, 25]
+    def on_exp_finished(self):
+        print("Done")
+        print(self.dataframe)
 
-        self.canvas.axes.plot(x, y)
+    def set_emergency(self):
+        self.thread_exp.emergency = True
+        QMessageBox.warning(self, "Emergency", "Der Notaus wurde gedrückt")
         
-        # Labeling the axes
-        self.canvas.axes.set_xlabel('X-Achse')  # Set the x-axis label
-        self.canvas.axes.set_ylabel('Y-Achse')  # Set the y-axis label
-
-        self.canvas.draw()
+    def startExp(self):
+        new_df = pd.DataFrame(self.df_value)
+        self.dataframe.update(new_df)
+        self.thread_exp.emergency = False
+        self.thread_exp.start()
 
 class MainWindow(QMainWindow):
     def __init__(self):
