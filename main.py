@@ -2,8 +2,8 @@ import sys
 import pandas as pd
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QTabWidget, QLabel, QFormLayout, QPushButton, QSpacerItem, QSizePolicy,QInputDialog,QMessageBox,QDialog,QDialogButtonBox,QProgressBar
 from PyQt6.QtCore import QThread, pyqtSignal
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from PyQt6.QtGui import QPixmap
+import pyqtgraph as pg
 import time
 import random
 
@@ -215,11 +215,7 @@ class sub_Tab_Experiment_inputs(QWidget):
             self.temp = value_input
             self.value_Temp.setText(str(self.temp))
             
-class MplCanvas(FigureCanvas):
-    def __init__(self, parent=None, width=5, height=4, dpi=100):
-        fig = Figure(figsize=(width, height), dpi=dpi)
-        self.axes = fig.add_subplot(111)
-        super().__init__(fig)
+
         
 class ValueDialog(QDialog):
     def __init__(self, values):
@@ -245,46 +241,51 @@ class ValueDialog(QDialog):
 
 class Thread_Experiment(QThread):
     finished_exp = pyqtSignal()
-    def __init__(self,Tab_Test):
+    update_graph = pyqtSignal()
+    update_theo_cycle = pyqtSignal(int)
+    update_Progress_bar = pyqtSignal(int)
+    def __init__(self,tab_exp):
         super().__init__()
-        self.tab_Test = Tab_Test
+        self.tab_exp = tab_exp
         self.emergency = False
     def run(self):
-        for i in range(1, 101):
+        for i in range(1, self.tab_exp.inputs_widget.max_cycle+1):
             if not self.emergency:
+                time.sleep(0.01)
                 print(i)
-                new_row = pd.DataFrame({"Messungsschritt": [i], "Widerstand": [random.randint(0, 100)]})
-                self.tab_Test.dataframe = pd.concat([self.tab_Test.dataframe, new_row], ignore_index=True)
-                self.tab_Test.canvas.axes.plot(self.tab_Test.dataframe["Messungsschritt"], self.tab_Test.dataframe["Widerstand"])
-        
-                # Labeling the axes
-                self.tab_Test.canvas.axes.set_xlabel('X-Achse')  # Set the x-axis label
-                self.tab_Test.canvas.axes.set_ylabel('Y-Achse')  # Set the y-axis label
-
-                self.tab_Test.canvas.draw()
-                time.sleep(0.1)
-                self.tab_Test.progress_bar.setValue(i)
+                self.update_theo_cycle.emit(i)
+                if i % self.tab_exp.inputs_widget.cycle_between_res == 0:
+                    new_row = pd.DataFrame({"Messungsschritt": [i], "Widerstand": [random.randint(0, 1000)]})
+                    self.tab_exp.dataframe = pd.concat([self.tab_exp.dataframe, new_row], ignore_index=True)
+                    progressbar_value = int(i/self.tab_exp.inputs_widget.max_cycle*100)
+                    print(progressbar_value)
+                    self.update_Progress_bar.emit(progressbar_value)
+                    self.update_graph.emit()
             else:
                 break
         self.finished_exp.emit()
 
 class sub_Tab_Experiment_graph(QWidget):
-    def __init__(self,inputs_widget):
+    def __init__(self, inputs_widget):
         super().__init__()
         self.inputs_widget = inputs_widget
-        self.df_value = {"Messungsschritt": [],"Widerstand": []}
+        self.df_value = {"Messungsschritt": [], "Widerstand": []}
         self.dataframe = pd.DataFrame(self.df_value)
-        # Create a matplotlib canvas
-        self.canvas = MplCanvas(self, width=5, height=4, dpi=100)
-
-        layout = QVBoxLayout()
+        
+        #layouts
+        layout_temp_humidity = QFormLayout()
+        layout_cycle_layout = QFormLayout()
+        layout_temp_cycle = QHBoxLayout()
         information = QHBoxLayout()
         pins = QVBoxLayout()
         resistance = QFormLayout()
         force = QFormLayout()
         emergency_layout = QHBoxLayout()
+        layout = QVBoxLayout()
         
+        #spaceritem
         spacer_item = QSpacerItem(0, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        
         
         information_resistance = {
             "Widerstand1 [µΩ]:": 0,
@@ -296,6 +297,15 @@ class sub_Tab_Experiment_graph(QWidget):
             "Kraft2 [N]:": 0,
             "Kraft3 [N]:": 0,
         }
+        
+        self.theo_cycle_label = QLabel("Soll - Zyklus")
+        self.theo_cycle_value = QLabel(str(0))
+        layout_temp_humidity.addRow(self.theo_cycle_label,self.theo_cycle_value)
+        
+        # for item, item_value in self.information_cycle.items():
+        #     text = QLabel(item)
+        #     value = QLabel(str(item_value))
+        #     layout_cycle_layout.addRow(text,value)
 
         for i in range(1, 4):
             pin_id = QLabel(f"Pin_{i}")
@@ -332,10 +342,10 @@ class sub_Tab_Experiment_graph(QWidget):
                 background-color: darkred;
             }
         """)
-        emergency_layout.addStretch()
-        emergency_layout.addWidget(self.emergency_button)
 
-        #Progress Bar
+        self.draw_graph()
+
+        # Progress Bar
         self.progress_bar = QProgressBar(self)
 
         information.addStretch()
@@ -344,23 +354,41 @@ class sub_Tab_Experiment_graph(QWidget):
         information.addItem(spacer_item)
         information.addLayout(force)
         information.addStretch()
+
+        layout_temp_cycle.addLayout(layout_temp_humidity)
+        layout_temp_cycle.addStretch()
+        layout_temp_cycle.addLayout(layout_cycle_layout)
+        layout_temp_cycle.addStretch()
+        layout_temp_cycle.addLayout(information)
+
+        emergency_layout.addLayout(layout_temp_cycle)
+        emergency_layout.addStretch()
+        emergency_layout.addWidget(self.emergency_button)
+
+        
         
         layout.addStretch()
         layout.addLayout(emergency_layout)
         layout.addWidget(start_experiment)
         layout.addWidget(self.progress_bar)
-        layout.addLayout(information)
+        layout.addWidget(self.graph)
         
         layout.addStretch()
-        layout.addWidget(self.canvas)
-        
+
         self.setLayout(layout)
 
-        #thread handling
+        # Thread handling
         self.thread_exp = Thread_Experiment(self)
         self.thread_exp.finished.connect(self.on_exp_finished)
+        self.thread_exp.update_graph.connect(self.draw_graph)
+        self.thread_exp.update_theo_cycle.connect(self.update_theo_cycle_value)
+        self.thread_exp.update_Progress_bar.connect(self.update_PB)
+    def update_PB(self,value):
+        self.progress_bar.setValue(value)
 
-    
+    def update_theo_cycle_value(self, value):
+        self.theo_cycle_value.setText(str(value))
+
     def values_experiment_start(self):
         values = {
             "Maximale Anzahl an Stackzyklen": self.inputs_widget.max_cycle,
@@ -374,7 +402,23 @@ class sub_Tab_Experiment_graph(QWidget):
             self.startExp()
         else:
             pass
+    def draw_graph(self):
+        if not hasattr(self, 'graph') or self.graph is None:
+            self.graph = pg.plot()
+            self.graph.setBackground('w')
+        self.graph.clear()  
+        pen = pg.mkPen(color='k')  # Schwarze Linienfarbe definieren
+        self.graph.plot(x=self.dataframe["Messungsschritt"], y=self.dataframe["Widerstand"], pen=pen)
 
+        # Stile der Achsen anpassen
+        self.graph.getAxis('bottom').setPen('k')  # X-Achse in Schwarz
+        self.graph.getAxis('left').setPen('k')    # Y-Achse in Schwarz
+        self.graph.getAxis('bottom').setTextPen('k')  # X-Achsenbeschriftung in Schwarz
+        self.graph.getAxis('left').setTextPen('k')    # Y-Achsenbeschriftung in Schwarz
+
+        # Achsenbeschriftungen setzen
+        self.graph.getAxis('bottom').setLabel(text='Messung', color='k')  # X-Achse
+        self.graph.getAxis('left').setLabel(text='Widerstand', color='k')  # Y-Achse
     def on_exp_finished(self):
         print("Done")
         print(self.dataframe)
@@ -384,10 +428,11 @@ class sub_Tab_Experiment_graph(QWidget):
         QMessageBox.warning(self, "Emergency", "Der Notaus wurde gedrückt")
         
     def startExp(self):
-        new_df = pd.DataFrame(self.df_value)
-        self.dataframe.update(new_df)
+        # Clear the existing dataframe and reset the plot
+        self.dataframe = pd.DataFrame(self.df_value)        
         self.thread_exp.emergency = False
         self.thread_exp.start()
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
