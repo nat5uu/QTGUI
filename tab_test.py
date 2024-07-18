@@ -72,7 +72,7 @@ class Tab_Test(QWidget):
 
         self.progress_bar = QProgressBar(self)
         start_test = QPushButton("Start Test")
-        self.emergency_button = QPushButton("Emergency")
+        self.emergency_button = QPushButton("Not-Aus")
         self.emergency_button.setFixedSize(200, 200)
         self.emergency_button.setStyleSheet("""
             QPushButton {

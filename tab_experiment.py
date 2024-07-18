@@ -12,10 +12,11 @@ class Tab_Experiment(QWidget):
         self.tabs = QTabWidget()
         self.tab_ex_input = sub_Tab_Experiment_inputs()
         self.tab_ex_graph = sub_Tab_Experiment_graph(self.tab_ex_input, self)
-        self.tab_ex_force = sub_Tab_Experiment_force()
+        self.tab_ex_force = sub_Tab_Experiment_force(self.tab_ex_graph)
 
         self.tabs.addTab(self.tab_ex_input, "Werte")
         self.tabs.addTab(self.tab_ex_graph, "Überwachung")
+        self.tabs.addTab(self.tab_ex_force, "Kraft-Diagramm")
 
         layout = QVBoxLayout(self)
         layout.addWidget(self.tabs)

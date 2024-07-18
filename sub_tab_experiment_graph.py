@@ -2,6 +2,7 @@ import serial
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLabel, QMessageBox, QHBoxLayout,QFormLayout,QSpacerItem,QSizePolicy,QProgressBar,QDialog
 from PyQt6.QtCore import QThread, pyqtSignal
 from dialog import ValueDialog
+import random
 import pandas as pd
 import pyqtgraph as pg
 import re
@@ -16,6 +17,7 @@ class Thread_Experiment(QThread):
     update_theo_cycle = pyqtSignal(int)
     update_Progress_bar = pyqtSignal(int)
     get_temp_and_hum_signal = pyqtSignal()
+
     
     def __init__(self,tab_exp):
         super().__init__()
@@ -32,6 +34,7 @@ class Thread_Experiment(QThread):
                 print(i)
                 self.update_theo_cycle.emit(i)
                 self.get_temp_and_hum_signal.emit()
+
                 
                 # measure if the current cycle is  n * cycle_between_res
                 if i % self.tab_exp.inputs_widget.cycle_between_res == 0:
@@ -58,15 +61,17 @@ class Thread_Experiment(QThread):
                     
             else:
                 break
-        self.finished_exp.emit()
+        if not self.emergency:
+            self.finished_exp.emit()
 
 
 class sub_Tab_Experiment_graph(QWidget):
-    def __init__(self, inputs_widget,tab_exp):
+    def __init__(self, inputs_widget,tab_exp,):
         super().__init__()
         
         # set variables
         self.inputs_widget = inputs_widget
+        
         self.tab_exp = tab_exp
         self.ser = None
         self.df_value = {"Messungsschritt": [], "Widerstand": []}
@@ -116,10 +121,6 @@ class sub_Tab_Experiment_graph(QWidget):
         layout_temp_humidity.addRow(self.exp_temp_label,self.exp_temp_value)
         layout_temp_humidity.addRow(self.exp_humidity_label,self.exp_humidity_value)
         
-        # for item, item_value in self.information_cycle.items():
-        #     text = QLabel(item)
-        #     value = QLabel(str(item_value))
-        #     layout_cycle_layout.addRow(text,value)
 
         for i in range(1, 4):
             pin_id = QLabel(f"Pin_{i}")
@@ -135,7 +136,7 @@ class sub_Tab_Experiment_graph(QWidget):
 
         start_experiment = QPushButton("Start Experiment")
         
-        self.emergency_button = QPushButton("Emergency")
+        self.emergency_button = QPushButton("Not-Aus")
         self.emergency_button.setFixedSize(200, 200)  # Set a fixed size to make it a circle
         self.emergency_button.setStyleSheet("""
             QPushButton {
@@ -191,31 +192,31 @@ class sub_Tab_Experiment_graph(QWidget):
         self.thread_exp.update_graph.connect(self.draw_graph)
         self.thread_exp.update_theo_cycle.connect(self.update_theo_cycle_value)
         self.thread_exp.update_Progress_bar.connect(self.update_PB)
-        self.thread_exp.get_temp_and_hum_signal.connect(self.get_temp_and_humidity)
+        # self.thread_exp.get_temp_and_hum_signal.connect(self.get_temp_and_humidity)           Serial Port wieder rein
         
     # update Progressbar
     def update_PB(self,value):
         self.progress_bar.setValue(value)
         
-    # get value of temp and humidity from serial port
-    def get_temp_and_humidity(self):
+    # # get value of temp and humidity from serial port       Serial Port wieder rein
+    # def get_temp_and_humidity(self):
         
-        # read line of data from serial port -> convert it into a string -> Removing Trailing Whitespace
-        self.line = self.ser.readline().decode('utf-8').rstrip()
+    #     # read line of data from serial port -> convert it into a string -> Removing Trailing Whitespace
+    #     self.line = self.ser.readline().decode('utf-8').rstrip()
         
-        # set value of theoretical temp
-        self.theo_temp_value.setText(str(self.inputs_widget.temp))
+    #     # set value of theoretical temp
+    #     self.theo_temp_value.setText(str(self.inputs_widget.temp))
         
-        #set humidity and temperature
-        if self.line:
-            self.humidity_match = self.humidity_pattern.search(self.line)
-            self.temperature_match = self.temperature_pattern.search(self.line)
-            if self.humidity_match:
-                humidity_value = self.humidity_match.group(1)
-                self.exp_humidity_value.setText(str(humidity_value))
-            if self.temperature_match:
-                temperature_value = self.temperature_match.group(1)
-                self.exp_temp_value.setText(str(temperature_value))
+    #     #set humidity and temperature
+    #     if self.line:
+    #         self.humidity_match = self.humidity_pattern.search(self.line)
+    #         self.temperature_match = self.temperature_pattern.search(self.line)
+    #         if self.humidity_match:
+    #             humidity_value = self.humidity_match.group(1)
+    #             self.exp_humidity_value.setText(str(humidity_value))
+    #         if self.temperature_match:
+    #             temperature_value = self.temperature_match.group(1)
+    #             self.exp_temp_value.setText(str(temperature_value))
                 
     def update_theo_cycle_value(self, value):
         self.theo_cycle_value.setText(str(value))
@@ -275,15 +276,15 @@ class sub_Tab_Experiment_graph(QWidget):
         self.inputs_widget.change_Temp.setEnabled(False)
         self.tab_exp.mainwindow.tabs.setTabEnabled(0, False)
         
-        # connect to arduino via port 9600 (can change on different usb - input)
-        if self.ser is None or not self.ser.is_open:
-            try:
-                self.ser = serial.Serial('COM8', 9600, timeout=1)
-                time.sleep(2)
-                print("connected")
-            except Exception as e:
-                QMessageBox.critical(self, "Error", f"Could not open serial port: {e}")
-                return
+        # connect to arduino via port 9600 (can change on different usb - input)           Serial Port wieder rein
+        # if self.ser is None or not self.ser.is_open:
+        #     try:
+        #         self.ser = serial.Serial('COM8', 9600, timeout=1)
+        #         time.sleep(2)
+        #         print("connected")
+        #     except Exception as e:
+        #         QMessageBox.critical(self, "Error", f"Could not open serial port: {e}")
+        #         return
         
         # Clear the existing dataframe and reset the plot
         self.dataframe = pd.DataFrame(self.df_value)        
