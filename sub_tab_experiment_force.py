@@ -1,4 +1,6 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QPushButton,QGridLayout,QMessageBox
+from PyQt6.QtGui import QPixmap
+from PyQt6.QtCore import Qt
 import pandas as pd
 import pyqtgraph as pg
 import random
@@ -10,6 +12,10 @@ class sub_Tab_Experiment_force(QWidget):
         super().__init__()
         self.tab_ex_graph = tab_ex_graph
         self.tab_ex_graph.thread_exp.update_theo_cycle.connect(self.update_graph)
+
+        self.pins = {}
+        for i in range(1,7):
+            self.pins[i] = QLabel(f"Pin_{i}")
 
         self.dataframes = {
                 'Plot_1': pd.DataFrame({
@@ -41,7 +47,14 @@ class sub_Tab_Experiment_force(QWidget):
 
         layout = QVBoxLayout()
         buttons = QHBoxLayout()
+        pins_1_3 = QVBoxLayout()
+        pins_4_6 = QVBoxLayout()
         diagramms = QGridLayout()
+
+        pin_image = QLabel()
+        pixmap = QPixmap("./Bilder/pin.png")
+        scaled_pixmap = pixmap.scaled(100, 100, Qt.AspectRatioMode.KeepAspectRatio)
+        pin_image.setPixmap(scaled_pixmap)
 
 
         self.emergency_button = QPushButton("Not-Aus")
@@ -58,7 +71,14 @@ class sub_Tab_Experiment_force(QWidget):
                 background-color: darkred;
             }
         """)
-
+        for i in range(1,4):
+            pins_1_3.addWidget(self.pins[i])
+        for i in range(4,7):
+            pins_4_6.addWidget(self.pins[i])
+        buttons.addStretch()
+        buttons.addLayout(pins_1_3)
+        buttons.addWidget(pin_image)
+        buttons.addLayout(pins_4_6)
         buttons.addStretch()
         buttons.addWidget(self.emergency_button)
 

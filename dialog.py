@@ -24,3 +24,8 @@ class ValueDialog(QDialog):
         buttons.rejected.connect(self.reject)
         
         layout.addWidget(buttons)
+
+class Error_pin(QDialog):
+    def __init__(self):
+        super().__init__()
+        pass
