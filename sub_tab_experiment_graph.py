@@ -250,6 +250,8 @@ class sub_Tab_Experiment_graph(QWidget):
         # draw graph
         self.graph.plot(x=self.dataframe["Messungsschritt"], y=self.dataframe["Widerstand"], pen=pen)
 
+        self.graph.setTitle("Widerstand")
+
         # change style of axes
         self.graph.getAxis('bottom').setPen('k')  # X-Achse in Schwarz
         self.graph.getAxis('left').setPen('k')    # Y-Achse in Schwarz

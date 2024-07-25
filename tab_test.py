@@ -44,14 +44,20 @@ class Tab_Test(QWidget):
             "Widerstand1 [µΩ]:": 0,
             "Widerstand2 [µΩ]:": 0,
             "Widerstand3 [µΩ]:": 0,
+            "Widerstand4 [µΩ]" : 0,
+            "Widerstand5 [µΩ]" : 0,
+            "Widerstand6 [µΩ]" : 0,
         }
         information_force = {
             "Kraft1 [N]:": 0,
             "Kraft2 [N]:": 0,
             "Kraft3 [N]:": 0,
+            "Kraft4 [N]:": 0,
+            "Kraft5 [N]:": 0,
+            "Kraft6 [N]:": 0,
         }
 
-        for i in range(1, 4):
+        for i in range(1, 7):
             pin_id = QLabel(f"Pin_{i}")
             pins.addWidget(pin_id)
             pins.addItem(spacer_item)

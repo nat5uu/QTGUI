@@ -84,7 +84,7 @@ class sub_Tab_Experiment_force(QWidget):
 
         for i, (name, df) in enumerate(self.dataframes.items()):
             plot_widget = pg.PlotWidget()
-            self.setup_plot(plot_widget, df)
+            self.setup_plot(plot_widget, df,name)
             self.plots[name] = plot_widget
             # Add the plot widget to the layout in a 2x3 grid
             diagramms.addWidget(plot_widget, i // 3, i % 3)
@@ -94,12 +94,13 @@ class sub_Tab_Experiment_force(QWidget):
 
         self.setLayout(layout)
 
-    def setup_plot(self, plot_widget, df):
+    def setup_plot(self, plot_widget, df,name):
         plot_widget.setBackground('w')
         pen = pg.mkPen(color='k')
 
         # Plot the data
         plot_widget.plot(x=df["Messungsschritt"], y=df["Kraft"], pen=pen)
+        plot_widget.setTitle(name)
 
         # Change style of axes
         plot_widget.getAxis('bottom').setPen('k')  # X-Achse in Schwarz
@@ -118,7 +119,6 @@ class sub_Tab_Experiment_force(QWidget):
     def update_graph(self,i):
         # actually a serial connection, now dummy
         self.update_values(i)
-        print(f"{i=}")
         for name, plot_widget in self.plots.items():
             plot_widget.clear()
             df = self.dataframes[name]
