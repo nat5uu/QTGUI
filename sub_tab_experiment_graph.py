@@ -211,7 +211,6 @@ class sub_Tab_Experiment_graph(QWidget):
         if self.line:
             self.humidity_match = self.humidity_pattern.search(self.line)
             self.temperature_match = self.temperature_pattern.search(self.line)
-            print("now")
             if self.humidity_match:
                 humidity_value = self.humidity_match.group(1)
                 self.exp_humidity_value.setText(str(humidity_value))
@@ -282,7 +281,7 @@ class sub_Tab_Experiment_graph(QWidget):
         # connect to arduino via port 9600 (can change on different usb - input)           Serial Port wieder rein
         if self.ser is None or not self.ser.is_open:
             try:
-                self.ser = serial.Serial('COM8', 9600, timeout=1)
+                self.ser = serial.Serial('COM9', 9600, timeout=1)  # Com 9 -> right side lower usb port
                 time.sleep(2)
                 print("connected")
             except Exception as e:
