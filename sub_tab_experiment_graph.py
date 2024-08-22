@@ -192,31 +192,32 @@ class sub_Tab_Experiment_graph(QWidget):
         self.thread_exp.update_graph.connect(self.draw_graph)
         self.thread_exp.update_theo_cycle.connect(self.update_theo_cycle_value)
         self.thread_exp.update_Progress_bar.connect(self.update_PB)
-        # self.thread_exp.get_temp_and_hum_signal.connect(self.get_temp_and_humidity)           Serial Port wieder rein
+        self.thread_exp.get_temp_and_hum_signal.connect(self.get_temp_and_humidity)          
         
     # update Progressbar
     def update_PB(self,value):
         self.progress_bar.setValue(value)
         
-    # # get value of temp and humidity from serial port       Serial Port wieder rein
-    # def get_temp_and_humidity(self):
+    # get value of temp and humidity from serial port       Serial Port wieder rein
+    def get_temp_and_humidity(self):
         
-    #     # read line of data from serial port -> convert it into a string -> Removing Trailing Whitespace
-    #     self.line = self.ser.readline().decode('utf-8').rstrip()
+        # read line of data from serial port -> convert it into a string -> Removing Trailing Whitespace
+        self.line = self.ser.readline().decode('utf-8').rstrip()
         
-    #     # set value of theoretical temp
-    #     self.theo_temp_value.setText(str(self.inputs_widget.temp))
+        # set value of theoretical temp
+        self.theo_temp_value.setText(str(self.inputs_widget.temp))
         
-    #     #set humidity and temperature
-    #     if self.line:
-    #         self.humidity_match = self.humidity_pattern.search(self.line)
-    #         self.temperature_match = self.temperature_pattern.search(self.line)
-    #         if self.humidity_match:
-    #             humidity_value = self.humidity_match.group(1)
-    #             self.exp_humidity_value.setText(str(humidity_value))
-    #         if self.temperature_match:
-    #             temperature_value = self.temperature_match.group(1)
-    #             self.exp_temp_value.setText(str(temperature_value))
+        #set humidity and temperature
+        if self.line:
+            self.humidity_match = self.humidity_pattern.search(self.line)
+            self.temperature_match = self.temperature_pattern.search(self.line)
+            print("now")
+            if self.humidity_match:
+                humidity_value = self.humidity_match.group(1)
+                self.exp_humidity_value.setText(str(humidity_value))
+            if self.temperature_match:
+                temperature_value = self.temperature_match.group(1)
+                self.exp_temp_value.setText(str(temperature_value))
                 
     def update_theo_cycle_value(self, value):
         self.theo_cycle_value.setText(str(value))
@@ -279,14 +280,14 @@ class sub_Tab_Experiment_graph(QWidget):
         self.tab_exp.mainwindow.tabs.setTabEnabled(0, False)
         
         # connect to arduino via port 9600 (can change on different usb - input)           Serial Port wieder rein
-        # if self.ser is None or not self.ser.is_open:
-        #     try:
-        #         self.ser = serial.Serial('COM8', 9600, timeout=1)
-        #         time.sleep(2)
-        #         print("connected")
-        #     except Exception as e:
-        #         QMessageBox.critical(self, "Error", f"Could not open serial port: {e}")
-        #         return
+        if self.ser is None or not self.ser.is_open:
+            try:
+                self.ser = serial.Serial('COM8', 9600, timeout=1)
+                time.sleep(2)
+                print("connected")
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Could not open serial port: {e}")
+                return
         
         # Clear the existing dataframe and reset the plot
         self.dataframe = pd.DataFrame(self.df_value)        
