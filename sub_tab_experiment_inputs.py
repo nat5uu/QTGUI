@@ -12,7 +12,7 @@ class sub_Tab_Experiment_inputs(QWidget):
         self.cycle_between_res_min = 100
         self.cycle_between_res_max = 1000
         self.temp = 120
-        self.temp_min = 20
+        self.temp_min = 200
         self.temp_max = 120
         
         # create Labels
