@@ -25,7 +25,7 @@ class MainWindow(QMainWindow):
 
         self.tabs.addTab(self.tab_test, "Test")
         self.tabs.addTab(self.tab_experiment, "Experiment")
-        self.tabs.setTabEnabled(1, True) ########################################## deaktivieren
+        self.tabs.setTabEnabled(1, False)
 
     #override close Event so the Serial port closes correctly
     def closeEvent(self, event):
